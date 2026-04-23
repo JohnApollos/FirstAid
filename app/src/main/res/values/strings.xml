@@ -1,0 +1,28 @@
+<resources>
+    <string name="app_name">FirstAid+</string>
+    <string name="emergency_button_text">🚨 EMERGENCY CALL (1199)</string>
+    <string name="search_hint">Search Emergency...</string>
+    <string name="home_tab">Home</string>
+    <string name="quiz_tab">Quiz</string>
+    <string name="about_tab">About</string>
+    <string name="developed_by">Developed by Team JAR</string>
+    <string name="quiz_question_label">Question %1$d of %2$d</string>
+    <string name="next_button">NEXT</string>
+    <string name="restart_button">RESTART</string>
+    <string name="correct_toast">Correct!</string>
+    <string name="wrong_toast">Wrong! The answer was %1$s</string>
+    <string name="quiz_result_title">Quiz Result</string>
+    <string name="quiz_score_msg">You scored %1$d out of %2$d</string>
+    <string name="about_version">Version %1$s (Beta)</string>
+    <string name="about_tagline">Your Offline Emergency Companion.</string>
+    <string name="team_lead_label">Lead Developer</string>
+    <string name="team_lead_name">Joseph Lperen (SCT213-C002-0105/2023)</string>
+    <string name="team_pm_label">Project Manager</string>
+    <string name="team_pm_name">John Apollos (SCT213-C002-0080/2023)</string>
+    <string name="team_ui_label">UI/UX Designer</string>
+    <string name="team_ui_name">Roselida Aloo (SCT213-C002-0118/2023)</string>
+    <string name="about_disclaimer_title">DISCLAIMER</string>
+    <string name="about_disclaimer_full">This application was developed as a university project for the Bachelor of Science in Data Science and Analytics at JKUAT. The medical information provided herein is based on standard first aid guidelines but does not constitute professional medical advice, diagnosis, or treatment. In a life-threatening emergency, always prioritize calling professional emergency services (1199/999/112). The developers are not liable for any actions taken based on this application.</string>
+    <string name="about_acknowledgements">Special thanks to the JKUAT Department of Computing &amp; IT for their support.</string>
+    <string name="quiz_intro_text">Test your knowledge and preparedness.</string>
+</resources>
