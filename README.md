@@ -1,42 +1,37 @@
-# FirstAid+ 🚑
+# FirstAid+
 
 > **Empowering the "Golden Hour": Zero-Latency Responsive Emergency Companion for Kenya.**
 
-FirstAid+ is an offline-first, cross-platform mobile application built using **Flutter**, engineered to provide instant access to life-saving medical protocols. Designed specifically for high-stress environments, rural areas, and network-constrained regions in Kenya, it runs perfectly on all devices (mobile, tablets, foldables) and supports both English and Kiswahili.
-
-![Build Status](https://img.shields.io/badge/Build-Success-brightgreen)
-![Platform](https://img.shields.io/badge/Platform-Flutter_CrossPlatform-blue?logo=flutter)
-![Database](https://img.shields.io/badge/Database-Isar_NoSQL-orange)
-![Sync](https://img.shields.io/badge/Sync-Supabase-green?logo=supabase)
+FirstAid+ is an offline-first, cross-platform mobile application built using Flutter, engineered to provide instant access to life-saving medical protocols. Designed specifically for high-stress environments, rural areas, and network-constrained regions in Kenya, it scales seamlessly across mobile devices, tablets, and foldables, supporting both English and Kiswahili.
 
 ---
 
-## 🌟 Key Features
+## Key Features
 
-### 📡 Offline-First Isar NoSQL Engine
-Powered by an ultra-fast **Isar NoSQL** database, all procedures, instructions, diagrams, and questions are cached locally. Full-text indexing provides sub-millisecond search results instantly as the user types.
+### Offline-First Isar NoSQL Engine
+Powered by an ultra-fast Isar NoSQL database, all procedures, instructions, diagrams, and questions are cached locally. Full-text indexing provides sub-millisecond search results instantly as the user types.
 
-### 🇰🇪 Dual-Language & Swahili Voice Guidance
-With a toggle, the entire UI flips instantly between English and Kiswahili. The built-in voice guidance (Text-to-Speech) automatically adjusts to Swahili (`sw-KE`) to assist users hands-free during emergency scenarios.
+### Dual-Language and Swahili Voice Guidance
+The entire UI transitions instantly between English and Kiswahili. The built-in voice guidance (Text-to-Speech) automatically adjusts to Swahili (`sw-KE`) to assist users hands-free during emergency scenarios.
 
-### 📱 Adaptive Multi-Pane & Foldable Layouts
+### Adaptive Multi-Pane and Foldable Layouts
 The UI adjusts dynamically to all form factors:
 - **Phones**: Single-column vertical scroll.
-- **Tablets/Foldables (>600dp)**: Automatic dual-pane Master-Detail layout.
+- **Tablets and Foldables (>600dp)**: Automatic dual-pane Master-Detail layout.
 - **Hinge Crease Offset**: Automatically shifts interactive buttons away from physical folds in foldable devices.
 
-### ⏱️ Isochronous CPR Metronome
-A high-precision periodic timer running independently of the main UI thread. It flashes the screen (Cyan to Charcoal) and emits a sharp audio click at exactly **110 bpm** to guide rescuers in real-time resuscitation.
+### Isochronous CPR Metronome
+A high-precision periodic timer running independently of the main UI thread. It flashes the screen (Cyan to Charcoal) and emits a sharp audio click at exactly 110 bpm to guide rescuers in real-time resuscitation.
 
-### 🚨 Smart GPS Location & SOS Fallback
+### Smart GPS Location and SOS Fallback
 Reads live coordinates (Latitude, Longitude, Altitude) offline directly from the device's internal GPS. Features a one-tap SOS trigger to call the Kenya Red Cross Society EPlus Ambulance (`1199`) and auto-fill an SMS with coordinates for the dispatch center.
 
-### 📊 Data Science Telemetry & Supabase Sync
-Gathers anonymized, encrypted user metrics (searches, completed procedures, quiz results) in a local Isar queue. When connected to Wi-Fi and charging, a background worker automatically uplinks telemetry logs to a central **Supabase PostgreSQL** instance.
+### Data Science Telemetry and Supabase Sync
+Gathers anonymized, encrypted user metrics (searches, completed procedures, quiz results) in a local Isar queue. When connected to Wi-Fi and charging, a background worker automatically uplinks telemetry logs to a central Supabase PostgreSQL instance.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```mermaid
 graph TD
@@ -69,7 +64,7 @@ graph TD
 
 ---
 
-## 🛠️ Technical Stack
+## Technical Stack
 
 | Component | Technology |
 |-----------|------------|
@@ -83,7 +78,7 @@ graph TD
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - **Flutter SDK** (stable branch)
@@ -114,7 +109,7 @@ graph TD
 
 ---
 
-## 👥 Venture Team
+## Venture Team
 
 FirstAid+ is designed, developed, and maintained under the **Apollos Digital Solutions** venture:
 
@@ -123,8 +118,8 @@ FirstAid+ is designed, developed, and maintained under the **Apollos Digital Sol
 
 ---
 
-## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## License
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
-*Created with ❤️ by Team JAR in Nairobi, Kenya.*
+*Developed by Apollos Digital Solutions in Nairobi, Kenya.*
