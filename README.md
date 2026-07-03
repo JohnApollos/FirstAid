@@ -1,29 +1,38 @@
 # FirstAid+ 🚑
 
-> **Empowering the "Golden Hour": Zero-Latency Emergency Medical Companion for Kenya.**
+> **Empowering the "Golden Hour": Zero-Latency Responsive Emergency Companion for Kenya.**
 
-FirstAid+ is an offline-first, native Android application engineered to provide instant access to life-saving medical protocols. Designed specifically for high-stress environments and network-constrained regions, it ensures that critical first-aid information is always just one tap away.
+FirstAid+ is an offline-first, cross-platform mobile application built using **Flutter**, engineered to provide instant access to life-saving medical protocols. Designed specifically for high-stress environments, rural areas, and network-constrained regions in Kenya, it runs perfectly on all devices (mobile, tablets, foldables) and supports both English and Kiswahili.
 
 ![Build Status](https://img.shields.io/badge/Build-Success-brightgreen)
-![Platform](https://img.shields.io/badge/Platform-Android_Native-orange?logo=android)
-![Language](https://img.shields.io/badge/Language-Java-red?logo=java)
-![Connectivity](https://img.shields.io/badge/Connectivity-Offline_First-blue)
+![Platform](https://img.shields.io/badge/Platform-Flutter_CrossPlatform-blue?logo=flutter)
+![Database](https://img.shields.io/badge/Database-Isar_NoSQL-orange)
+![Sync](https://img.shields.io/badge/Sync-Supabase-green?logo=supabase)
 
 ---
 
 ## 🌟 Key Features
 
-### 📡 Offline-First Intelligence
-Built with a local **SQLite** core, all medical instructions, diagrams, and assets are embedded directly into the device. No internet? No problem. The app works flawlessly in rural blackspots and on long highway stretches.
+### 📡 Offline-First Isar NoSQL Engine
+Powered by an ultra-fast **Isar NoSQL** database, all procedures, instructions, diagrams, and questions are cached locally. Full-text indexing provides sub-millisecond search results instantly as the user types.
 
-### 🆘 One-Touch Emergency Response
-In a crisis, every second counts. The integrated **Emergency Dialer** allows users to instantly connect with national emergency services (999/112) using a high-visibility, single-tap interface.
+### 🇰🇪 Dual-Language & Swahili Voice Guidance
+With a toggle, the entire UI flips instantly between English and Kiswahili. The built-in voice guidance (Text-to-Speech) automatically adjusts to Swahili (`sw-KE`) to assist users hands-free during emergency scenarios.
 
-### 🧠 Interactive Learning (Quiz Module)
-Beyond emergencies, FirstAid+ acts as an educational tool. The gamified **Quiz Module** allows users to test their knowledge and improve their preparedness during downtime.
+### 📱 Adaptive Multi-Pane & Foldable Layouts
+The UI adjusts dynamically to all form factors:
+- **Phones**: Single-column vertical scroll.
+- **Tablets/Foldables (>600dp)**: Automatic dual-pane Master-Detail layout.
+- **Hinge Crease Offset**: Automatically shifts interactive buttons away from physical folds in foldable devices.
 
-### 🛡️ High-Stress UI/UX
-Designed with a "Medical Red" high-contrast theme and oversized touch targets. The interface is optimized to minimize cognitive load and prevent accidental clicks when the user is in a state of panic.
+### ⏱️ Isochronous CPR Metronome
+A high-precision periodic timer running independently of the main UI thread. It flashes the screen (Cyan to Charcoal) and emits a sharp audio click at exactly **110 bpm** to guide rescuers in real-time resuscitation.
+
+### 🚨 Smart GPS Location & SOS Fallback
+Reads live coordinates (Latitude, Longitude, Altitude) offline directly from the device's internal GPS. Features a one-tap SOS trigger to call the Kenya Red Cross Society EPlus Ambulance (`1199`) and auto-fill an SMS with coordinates for the dispatch center.
+
+### 📊 Data Science Telemetry & Supabase Sync
+Gathers anonymized, encrypted user metrics (searches, completed procedures, quiz results) in a local Isar queue. When connected to Wi-Fi and charging, a background worker automatically uplinks telemetry logs to a central **Supabase PostgreSQL** instance.
 
 ---
 
@@ -31,26 +40,31 @@ Designed with a "Medical Red" high-contrast theme and oversized touch targets. T
 
 ```mermaid
 graph TD
-    subgraph UI_Layer["User Interface (Android Activities)"]
-        MA[MainActivity] --> PS[Procedure Search]
-        MA --> EM[Emergency Dialer]
-        MA --> QM[Quiz Module]
-        PS --> DA[DetailActivity]
+    subgraph UI_Layer["Responsive UI (Flutter widgets)"]
+        MA[Home View] --> PS[Search View]
+        MA --> EM[Emergency SOS View]
+        MA --> QM[Quiz & Metronome View]
+        PS --> DA[Detail View]
     end
 
-    subgraph Logic_Layer["Business Logic"]
-        TTS[Text-To-Speech Engine]
-        VAL[Input Validator]
+    subgraph Logic_Layer["Business Logic (Riverpod)"]
+        TTS[Flutter TTS Engine]
+        MET[CPR Metronome Isolate]
+        LOC[Geolocator GPS Service]
     end
 
-    subgraph Data_Layer["Data Persistence"]
-        DB[(Local SQLite DB)]
-        ASSET[Embedded Media Assets]
+    subgraph Data_Layer["Data & Sync"]
+        ISAR[(Isar Local NoSQL DB)]
+        SUPA[Supabase Cloud Backend]
+        WORK[WorkManager Sync Job]
     end
 
     DA --> TTS
-    QM --> DB
-    PS --> DB
+    EM --> LOC
+    QM --> MET
+    MA --> ISAR
+    ISAR --> WORK
+    WORK --> SUPA
 ```
 
 ---
@@ -59,42 +73,53 @@ graph TD
 
 | Component | Technology |
 |-----------|------------|
-| **Core** | Native Android (Java) |
-| **Database** | SQLite |
-| **Minimum SDK** | API 24 (Android 7.0) |
-| **Target SDK** | API 33 (Android 13.0) |
-| **UI Library** | Material Components for Android |
-| **Accessibility** | Android Text-To-Speech (TTS) |
+| **Framework** | Flutter (Dart) |
+| **Local Database** | Isar NoSQL |
+| **Backend / Sync** | Supabase |
+| **State Management** | Riverpod |
+| **Localization** | `flutter_localizations` (.arb files) |
+| **Location Engine** | `geolocator` |
+| **Background Sync** | `workmanager` |
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Android Studio Hedgehog or newer
-- JDK 11+
-- Android Device/Emulator (API 24+)
+- **Flutter SDK** (stable branch)
+- **Dart SDK**
+- **Android Studio / Xcode** (for compiling native packages)
 
 ### Installation
 1. Clone the repository:
    ```bash
    git clone https://github.com/team-jar/FirstAidPlus.git
    ```
-2. Open the project in **Android Studio**.
-3. Let Gradle sync dependencies.
-4. Run the `app` module on your device.
+2. Navigate to the project folder:
+   ```bash
+   cd FirstAidPlus
+   ```
+3. Fetch dependencies:
+   ```bash
+   flutter pub get
+   ```
+4. Run compiler generators for Isar:
+   ```bash
+   dart run build_runner build
+   ```
+5. Deploy to a connected device:
+   ```bash
+   flutter run
+   ```
 
 ---
 
-## 👥 The Team: JAR
+## 👥 Venture Team
 
-Developed as a capstone project by undergraduate students at **Jomo Kenyatta University of Agriculture and Technology (JKUAT)**, pursuing a **BSc in Data Science and Analytics**.
+FirstAid+ is designed, developed, and maintained under the **Apollos Digital Solutions** venture:
 
-| Name | Registration Number |
-|------|---------------------|
-| **Joseph Lperen Arigele** | SCT213-C002-0105/2023 |
-| **John Apollos Olal** | SCT213-C002-0080/2023 |
-| **Roselida Aloo** | SCT213-C002-0118/2023 |
+* **John Apollos Olal** (Lead Software Engineer & Data Scientist): Responsible for cross-platform Flutter architecture, NoSQL database engineering, and offline telemetry pipeline.
+* **Joseph Lperen Arigele** (Ventures Strategist & Regional Liaison): Responsible for operational deployment, Red Cross partnership alignment, and county integration strategy.
 
 ---
 

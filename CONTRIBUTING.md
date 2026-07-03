@@ -1,42 +1,56 @@
-# Contributing to FirstAid+ 🚑
+# Contributing to FirstAid+ v2 🚑
 
-First, thank you for considering contributing to FirstAid+! Every contribution helps make this life-saving tool better for everyone.
-
-## 🩺 Adding New Medical Protocols
-
-If you want to add a new first-aid procedure, please follow these steps:
-
-1.  **Verify Information**: Ensure the medical instructions are based on current, verified medical standards (e.g., Red Cross, St John Ambulance).
-2.  **Update Database**:
-    *   Add a new entry to the `procedures` table.
-    *   Add the sequential steps to the `steps` table.
-3.  **Add Assets**: If the protocol requires a diagram, add a low-res, high-contrast PNG to `app/src/main/res/drawable`.
-
-## 💻 Code Contributions
-
-### Branching Strategy
-- `main`: Production-ready code.
-- `develop`: Ongoing development.
-- `feature/*`: New features or medical protocols.
-
-### Code Style
-- Use standard Java naming conventions (CamelCase for classes, camelCase for methods/variables).
-- Ensure all new Activities are registered in `AndroidManifest.xml`.
-- Add Javadoc comments to all new public methods.
-
-## 🧪 Testing
-
-Before submitting a Pull Request, please ensure:
-1.  The app builds successfully via `./gradlew assembleDebug`.
-2.  The SQLite database migrations (if any) are handled correctly.
-3.  The Text-To-Speech engine correctly reads out the new instructions.
-
-## 📄 Reporting Bugs
-
-If you find a bug, please open an issue with:
-- A clear, descriptive title.
-- Steps to reproduce the issue.
-- Your device model and Android version.
+Thank you for contributing to FirstAid+! Below are the guidelines for writing code, adding medical protocols, and verifying builds in our Flutter environment.
 
 ---
-*Thank you for helping us protect the Golden Hour!*
+
+## 🩺 Adding Medical Protocols & Localization
+
+FirstAid+ is offline-first. To add new medical guidelines:
+
+1. **Verify Source**: All guidelines must be sourced from official medical boards (e.g., Red Cross, St John Ambulance).
+2. **Update Database Seeding**:
+   - Open `lib/core/database/isar_service.dart`.
+   - Update the seed procedure list inside the DB initialization code.
+   - Provide complete text strings for both English and Swahili translations.
+3. **Illustrations**:
+   - Add high-contrast illustration files to `assets/images/` (in PNG or JPG format).
+   - Ensure the file name is mapped in the step's `imageResource` field.
+
+---
+
+## 💻 Coding Guidelines
+
+### Flutter & Dart Conventions
+- Adhere to the official [Dart Style Guide](https://dart.dev/guides/language/effective-dart/style).
+- Use **Riverpod** for state management and UI bindings.
+- Decouple business logic services (`lib/core/services/`) from UI screens.
+- Keep widgets cohesive, responsive, and adaptive (mobile vs. tablet views).
+
+### Code Generation (build_runner)
+When modifying Isar models (under `lib/core/database/models/`), you must re-generate the database adapters:
+```bash
+dart run build_runner build --delete-conflicting-outputs
+```
+
+---
+
+## 🧪 Verification & Build Checks
+
+Before submitting a Pull Request:
+
+1. **Static Analysis**: Verify that there are zero compilation errors or lint warnings:
+   ```bash
+   flutter analyze
+   ```
+2. **Localizations Rebuild**: If you modified localization files, verify they compile cleanly:
+   ```bash
+   flutter gen-l10n
+   ```
+3. **Compilation Check**: Confirm the app compiles successfully:
+   ```bash
+   flutter build apk --debug
+   ```
+
+---
+*Created by Apollos Digital Solutions Venture Team.*

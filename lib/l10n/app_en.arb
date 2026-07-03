@@ -1,0 +1,53 @@
+{
+  "appName": "FirstAid+",
+  "@appName": {
+    "description": "The name of the application"
+  },
+  "emergencyCall": "🚨 EMERGENCY CALL (1199)",
+  "searchHint": "Search Emergency...",
+  "homeTab": "Home",
+  "quizTab": "Quiz",
+  "aboutTab": "About",
+  "cprMetronome": "CPR Metronome",
+  "startMetronome": "Start Metronome",
+  "stopMetronome": "Stop Metronome",
+  "liveGps": "Live GPS Coordinates",
+  "latitude": "Latitude",
+  "longitude": "Longitude",
+  "accuracy": "Accuracy",
+  "copyLocation": "Copy Location",
+  "shareLocation": "Share Location",
+  "highScore": "High Score: {score}",
+  "@highScore": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "questionCount": "Question {current} of {total}",
+  "@questionCount": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "correct": "Correct!",
+  "wrong": "Wrong!",
+  "quizFeedbackPrepared": "Congratulations! You are officially prepared.",
+  "quizFeedbackReview": "Good effort! Review the guides to improve your score.",
+  "quizFeedbackStudy": "Keep studying! Safety first.",
+  "restartQuiz": "Restart Quiz",
+  "goHome": "Go Home",
+  "version": "Version 2.0.0 (Beta)",
+  "aboutDisclaimer": "FirstAid+ provides offline-first emergency guides based on standard medical guidelines. It does not constitute professional medical advice, diagnosis, or treatment. In a life-threatening emergency, always prioritize calling professional emergency services (1199/999/112).",
+  "aboutAcknowledgements": "Special thanks to the JKUAT Department of Computing & IT for their initial support.",
+  "languageLabel": "Language / Lugha",
+  "confirmButton": "CONFIRM",
+  "nextButton": "NEXT",
+  "finishButton": "FINISH"
+}

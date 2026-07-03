@@ -36,4 +36,15 @@ captures/
 Thumbs.db
 
 # Gradle distribution zip
-gradle/wrapper/*.zip
+**/*.zip
+
+# Flutter/Dart specific ignores
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+.symlinks/
+*.lock.g
