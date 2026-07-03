@@ -118,6 +118,17 @@ FirstAid+ is designed, developed, and maintained under the **Apollos Digital Sol
 
 ---
 
+## Future Roadmap
+
+The following features and enhancements are planned for upcoming releases of FirstAid+:
+
+* **Drift-Free CPR Metronome**: Re-implementation of the audio/visual metronome using a hardware VSync-bound `AnimationController` to guarantee microsecond synchronization under heavy UI threads.
+* **Responsive Multi-Viewport Overhaul**: Integration of adaptive content constraints (maximum content width of 800dp) and side-by-side grid layouts on wide tablets, landscape viewports, and unfolded foldable screens.
+* **Gamified CPR Pace Tester**: Integration of a real-time tap recorder that calculates resuscitator compression intervals, giving immediate feedback on compliance with the 110 BPM guideline.
+* **Branched Rescue Scenarios**: Interactive situational training paths replicating real-world emergency decision trees.
+* **Offline County Directory**: Built-in telephone database for regional Kenya Red Cross Society offices and county hospital dispatch lines.
+* **Paramedic Medical ID Profile**: Local secure storage allowing users to pre-fill blood group, allergies, and emergency contact details for scene responders.
+
 ## License
 This project is licensed under the MIT License - see the LICENSE file for details.
 
