@@ -4,8 +4,8 @@ import '../database/models/telemetry_log.dart';
 /// Service class to manage all network operations with Supabase.
 /// Includes fallback error handling to support offline-first execution.
 class SupabaseService {
-  static const String _supabaseUrl = 'https://placeholder-project.supabase.co';
-  static const String _supabaseAnonKey = 'placeholder-anon-key-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
+  static const String _supabaseUrl = 'https://klxodhwmaxydflzlpmek.supabase.co';
+  static const String _supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtseG9kaHdtYXh5ZGZsemxwbWVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzMjA0MDAsImV4cCI6MjA5ODg5NjQwMH0.q44FR8ATMvTPizHEb3LopvQ7CFuzGQOddjrD7IMUlTI';
 
   bool _initialized = false;
 
