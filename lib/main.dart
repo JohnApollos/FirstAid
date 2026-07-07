@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -5,15 +6,22 @@ import 'package:firstaid/l10n/app_localizations.dart';
 import 'core/providers/providers.dart';
 import 'core/theme/theme.dart';
 import 'features/main_navigation_shell.dart';
-import 'core/telemetry/background_sync.dart';
 
-void main() {
+void main() async {
   // Ensure native bindings are initialized before app startup
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize and register background telemetry sync tasks
-  BackgroundSync.initialize();
-  BackgroundSync.registerPeriodicSync();
+
+  // Intercept all unhandled Dart exceptions to prevent app crashes
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint("FATAL UNHANDLED EXCEPTION: $error");
+    debugPrintStack(stackTrace: stack);
+    return true; // Prevents crash
+  };
+
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    debugPrint("FLUTTER ERROR: ${details.exception}");
+  };
   
   runApp(
     const ProviderScope(

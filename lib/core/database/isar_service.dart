@@ -7,6 +7,7 @@ import 'models/procedure.dart';
 import 'models/quiz_question.dart';
 import 'models/telemetry_log.dart';
 import 'models/regional_directory.dart';
+import '../telemetry/background_sync.dart';
 
 
 
@@ -64,6 +65,15 @@ class IsarService {
 
       // Seed data if empty
       await _seedDataIfNeeded(isar);
+
+      // Lazy-initialize background telemetry sync once database is fully setup and verified
+      try {
+        await BackgroundSync.initialize();
+        BackgroundSync.registerPeriodicSync();
+      } catch (e) {
+        debugPrint("Failed to initialize background sync: $e");
+      }
+
       return isar;
     }
     return Isar.getInstance()!;

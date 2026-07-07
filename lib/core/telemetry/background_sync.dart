@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:workmanager/workmanager.dart';
 import '../database/isar_service.dart';
 import '../network/supabase_service.dart';
@@ -9,6 +10,7 @@ const String telemetrySyncTaskName = "com.example.firstaid.telemetrySyncTask";
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
+    WidgetsFlutterBinding.ensureInitialized(); // Initialize native channels for background thread
     try {
       final isarService = IsarService();
       final supabaseService = SupabaseService();
@@ -39,8 +41,8 @@ void callbackDispatcher() {
 /// Helper class to initialize and register the background telemetry sync tasks.
 class BackgroundSync {
   /// Initializes the background worker.
-  static void initialize() {
-    Workmanager().initialize(
+  static Future<void> initialize() async {
+    await Workmanager().initialize(
       callbackDispatcher,
       isInDebugMode: false,
     );
