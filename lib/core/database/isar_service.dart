@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
@@ -21,17 +22,45 @@ class IsarService {
   Future<Isar> _openDB() async {
     if (Isar.instanceNames.isEmpty) {
       final dir = await getApplicationDocumentsDirectory();
-      final isar = await Isar.open(
-        [
-          ProcedureSchema,
-          QuizQuestionSchema,
-          TelemetryLogSchema,
-          RegionalOfficeSchema,
-          ReferralHospitalSchema,
-        ],
-        directory: dir.path,
-        inspector: kDebugMode, // Enables Isar database inspector only in debug mode
-      );
+      
+      Isar isar;
+      try {
+        isar = await Isar.open(
+          [
+            ProcedureSchema,
+            QuizQuestionSchema,
+            TelemetryLogSchema,
+            RegionalOfficeSchema,
+            ReferralHospitalSchema,
+          ],
+          directory: dir.path,
+          inspector: kDebugMode, // Enables Isar database inspector only in debug mode
+        );
+      } catch (e) {
+        // Handle schema mismatch/corrupt database upgrades by purging the old local files
+        debugPrint("Isar schema mismatch detected. Performing clean rebuild: $e");
+        final file = File('${dir.path}/default.isar');
+        if (await file.exists()) {
+          await file.delete();
+        }
+        final lockFile = File('${dir.path}/default.isar.lock');
+        if (await lockFile.exists()) {
+          await lockFile.delete();
+        }
+        
+        // Re-attempt open after clearing local files
+        isar = await Isar.open(
+          [
+            ProcedureSchema,
+            QuizQuestionSchema,
+            TelemetryLogSchema,
+            RegionalOfficeSchema,
+            ReferralHospitalSchema,
+          ],
+          directory: dir.path,
+          inspector: kDebugMode,
+        );
+      }
 
       // Seed data if empty
       await _seedDataIfNeeded(isar);
