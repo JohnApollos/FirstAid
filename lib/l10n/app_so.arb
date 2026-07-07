@@ -1,0 +1,53 @@
+{
+  "appName": "FirstAid+",
+  "@appName": {
+    "description": "The name of the application"
+  },
+  "emergencyCall": "🚨 WAC DEGDEG AH (1199)",
+  "searchHint": "Raadi Xaaladaha Degdegga ah...",
+  "homeTab": "Hoy",
+  "quizTab": "Kedis",
+  "aboutTab": "Ku Saabsan",
+  "cprMetronome": "Mitirka CPR",
+  "startMetronome": "Daar Mitirka",
+  "stopMetronome": "Dami Mitirka",
+  "liveGps": "Goobta GPS-ka ee Tooska ah",
+  "latitude": "Latitude",
+  "longitude": "Longitude",
+  "accuracy": "Saxsanaanta",
+  "copyLocation": "Koobiyee Goobta",
+  "shareLocation": "La Wadaag Goobta",
+  "highScore": "Dhibcaha ugu Sarreeya: {score}",
+  "@highScore": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "questionCount": "Su'aasha {current} ee {total}",
+  "@questionCount": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "correct": "Sax!",
+  "wrong": "Qalad!",
+  "quizFeedbackPrepared": "Hambalyo! Waxaad si rasmi ah ugu diyaar garowday.",
+  "quizFeedbackReview": "Dadaal wacan! Dib u eeg hagayaasha si aad u hagaajiso dhibcahaaga.",
+  "quizFeedbackStudy": "Sii wad barashada! Badbaadada ayaa ugu horreysa.",
+  "restartQuiz": "Dib u billow Kediska",
+  "goHome": "Aad Hoyga",
+  "version": "Version 2.0.0 (Beta)",
+  "aboutDisclaimer": "FirstAid+ wuxuu bixiyaa hagayaal caafimaad oo degdeg ah oo offline ah oo ku salaysan halbeegyada caafimaadka ee rasmiga ah. Ma ahan talo caafimaad oo rasmi ah. Xaaladaha degdegga ah, had iyo jeer mudnaanta sii wicitaanka adeegyada gurmadka ee rasmiga ah (1199).",
+  "aboutAcknowledgements": "Mahadsanid gaar ah oo ku aaddan Apollos Digital Solutions.",
+  "languageLabel": "Luuqadda / Language",
+  "confirmButton": "XAQIIQI",
+  "nextButton": "XIGA",
+  "finishButton": "DHAMMEYSO"
+}

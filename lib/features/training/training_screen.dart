@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firstaid/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -28,6 +29,16 @@ class _TrainingScreenState extends ConsumerState<TrainingScreen> with SingleTick
   int? _selectedOptionIdx;
   bool _quizAnswered = false;
   bool _quizLoading = true;
+
+  // CPR Pace Tester state variables
+  final List<int> _tapTimestamps = [];
+  double _currentBpm = 0.0;
+  String _paceFeedback = "START TAPPING";
+  Color _paceColor = Colors.grey;
+  int _totalTaps = 0;
+  int _perfectTaps = 0;
+  int _perfectStreak = 0;
+  int _maxStreak = 0;
 
   @override
   void initState() {
@@ -121,12 +132,10 @@ class _TrainingScreenState extends ConsumerState<TrainingScreen> with SingleTick
 
   void _showQuizResultsDialog() {
     final l10n = AppLocalizations.of(context)!;
-    final percentage = _score / _quizQuestions.length;
-
-    String feedbackText;
-    if (percentage >= 0.8) {
+    String feedbackText = "";
+    if (_score == _quizQuestions.length) {
       feedbackText = l10n.quizFeedbackPrepared;
-    } else if (percentage >= 0.5) {
+    } else if (_score >= 3) {
       feedbackText = l10n.quizFeedbackReview;
     } else {
       feedbackText = l10n.quizFeedbackStudy;
@@ -167,13 +176,71 @@ class _TrainingScreenState extends ConsumerState<TrainingScreen> with SingleTick
     );
   }
 
+  // --- CPR Pace Tester Logic ---
+
+  void _onPaceTap() {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    HapticFeedback.lightImpact(); // Haptic pulse feedback on tap
+
+    setState(() {
+      _totalTaps++;
+      _tapTimestamps.add(now);
+      if (_tapTimestamps.length > 10) {
+        _tapTimestamps.removeAt(0); // Window limit
+      }
+
+      if (_tapTimestamps.length >= 2) {
+        double totalInterval = 0;
+        for (int i = 1; i < _tapTimestamps.length; i++) {
+          totalInterval += (_tapTimestamps[i] - _tapTimestamps[i - 1]);
+        }
+        final avgInterval = totalInterval / (_tapTimestamps.length - 1);
+        _currentBpm = 60000 / avgInterval;
+
+        if (_currentBpm < 100) {
+          _paceFeedback = "TOO SLOW (${_currentBpm.toStringAsFixed(0)} BPM)";
+          _paceColor = Colors.amber.shade700;
+          _perfectStreak = 0;
+        } else if (_currentBpm > 120) {
+          _paceFeedback = "TOO FAST (${_currentBpm.toStringAsFixed(0)} BPM)";
+          _paceColor = Colors.red.shade700;
+          _perfectStreak = 0;
+        } else {
+          _paceFeedback = "PERFECT CPR PACE (${_currentBpm.toStringAsFixed(0)} BPM)";
+          _paceColor = Colors.green.shade700;
+          _perfectTaps++;
+          _perfectStreak++;
+          if (_perfectStreak > _maxStreak) {
+            _maxStreak = _perfectStreak;
+          }
+        }
+      } else {
+        _paceFeedback = "KEEP TAPPING...";
+        _paceColor = Colors.blue;
+      }
+    });
+  }
+
+  void _resetPaceTester() {
+    setState(() {
+      _tapTimestamps.clear();
+      _currentBpm = 0.0;
+      _paceFeedback = "START TAPPING";
+      _paceColor = Colors.grey;
+      _totalTaps = 0;
+      _perfectTaps = 0;
+      _perfectStreak = 0;
+      _maxStreak = 0;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final highScore = ref.watch(highScoreProvider);
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: const Text("FirstAid+ Training"),
@@ -183,15 +250,22 @@ class _TrainingScreenState extends ConsumerState<TrainingScreen> with SingleTick
             unselectedLabelColor: Colors.red[100],
             tabs: const [
               Tab(icon: Icon(Icons.timer), text: "Metronome"),
+              Tab(icon: Icon(Icons.touch_app), text: "Pace Tester"),
               Tab(icon: Icon(Icons.school), text: "Quiz"),
             ],
           ),
         ),
-        body: TabBarView(
-          children: [
-            _buildMetronomeTab(l10n),
-            _buildQuizTab(l10n, highScore),
-          ],
+        body: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 800), // Max tablet width boundary
+            child: TabBarView(
+              children: [
+                _buildMetronomeTab(l10n),
+                _buildPaceTesterTab(),
+                _buildQuizTab(l10n, highScore),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -199,8 +273,6 @@ class _TrainingScreenState extends ConsumerState<TrainingScreen> with SingleTick
 
   Widget _buildMetronomeTab(AppLocalizations l10n) {
     final metronome = ref.read(metronomeServiceProvider);
-    
-    // UI color changes: Cyan when tick flashes, Charcoal otherwise
     final metronomeColor = _flashColorState ? const Color(0xFF00E5FF) : const Color(0xFF212121);
     
     return Padding(
@@ -264,11 +336,136 @@ class _TrainingScreenState extends ConsumerState<TrainingScreen> with SingleTick
             },
             child: Text(
               _isMetronomeActive ? l10n.stopMetronome : l10n.startMetronome,
-              style: const TextStyle(fontSize: 18),
+              style: const TextStyle(fontSize: 18, color: Colors.white),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPaceTesterTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            "CPR Compression Pace Tester",
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "Tap the pad below repeatedly matching the correct tempo. We will measure your cadence in real-time. Target: 100-120 BPM.",
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14, color: Colors.grey),
+          ),
+          const SizedBox(height: 24),
+
+          // Feedback Banner
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              color: _paceColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: _paceColor, width: 1.5),
+            ),
+            child: Text(
+              _paceFeedback,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _paceColor),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Interactive Tap Target
+          GestureDetector(
+            onTap: _onPaceTap,
+            child: Container(
+              height: 220,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.grey.shade800, Colors.grey.shade900],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: _paceColor.withOpacity(0.4),
+                    blurRadius: 16,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.touch_app, size: 64, color: Colors.white70),
+                    SizedBox(height: 8),
+                    Text(
+                      "TAP HERE",
+                      style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          // Statistics display
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildStatColumn("Total Taps", "$_totalTaps"),
+                      _buildStatColumn("Perfect Taps", "$_perfectTaps"),
+                    ],
+                  ),
+                  const Divider(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildStatColumn("Current Streak", "$_perfectStreak"),
+                      _buildStatColumn("Best Streak", "$_maxStreak"),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Reset button
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.red[700],
+              side: BorderSide(color: Colors.red[700]!),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            onPressed: _resetPaceTester,
+            icon: const Icon(Icons.refresh),
+            label: const Text("RESET SESSION", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatColumn(String label, String value) {
+    return Column(
+      children: [
+        Text(label, style: const TextStyle(color: Colors.black54, fontSize: 13)),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+      ],
     );
   }
 
@@ -282,11 +479,11 @@ class _TrainingScreenState extends ConsumerState<TrainingScreen> with SingleTick
     }
 
     final locale = ref.watch(localeProvider);
-    final isSw = locale.languageCode == 'sw';
+    final langCode = locale.languageCode;
     final question = _quizQuestions[_currentQuestionIdx];
-    final questionText = isSw ? question.questionSw : question.questionEn;
-    final options = isSw ? question.optionsSw : question.optionsEn;
-    final explanation = isSw ? question.explanationSw : question.explanationEn;
+    final questionText = question.question?.get(langCode) ?? '';
+    final options = question.getOptions(langCode);
+    final explanation = question.explanation?.get(langCode) ?? '';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
@@ -395,6 +592,7 @@ class _TrainingScreenState extends ConsumerState<TrainingScreen> with SingleTick
                       ? l10n.finishButton
                       : l10n.nextButton)
                   : l10n.confirmButton,
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
           ),
         ],

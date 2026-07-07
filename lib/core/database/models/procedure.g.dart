@@ -33,15 +33,11 @@ const ProcedureSchema = CollectionSchema(
       type: IsarType.objectList,
       target: r'FirstAidStep',
     ),
-    r'titleEn': PropertySchema(
+    r'title': PropertySchema(
       id: 3,
-      name: r'titleEn',
-      type: IsarType.string,
-    ),
-    r'titleSw': PropertySchema(
-      id: 4,
-      name: r'titleSw',
-      type: IsarType.string,
+      name: r'title',
+      type: IsarType.object,
+      target: r'LocalizedText',
     )
   },
   estimateSize: _procedureEstimateSize,
@@ -49,36 +45,12 @@ const ProcedureSchema = CollectionSchema(
   deserialize: _procedureDeserialize,
   deserializeProp: _procedureDeserializeProp,
   idName: r'id',
-  indexes: {
-    r'titleEn': IndexSchema(
-      id: -2091063282091232382,
-      name: r'titleEn',
-      unique: false,
-      replace: false,
-      properties: [
-        IndexPropertySchema(
-          name: r'titleEn',
-          type: IndexType.value,
-          caseSensitive: true,
-        )
-      ],
-    ),
-    r'titleSw': IndexSchema(
-      id: 7300015692631919592,
-      name: r'titleSw',
-      unique: false,
-      replace: false,
-      properties: [
-        IndexPropertySchema(
-          name: r'titleSw',
-          type: IndexType.value,
-          caseSensitive: true,
-        )
-      ],
-    )
-  },
+  indexes: {},
   links: {},
-  embeddedSchemas: {r'FirstAidStep': FirstAidStepSchema},
+  embeddedSchemas: {
+    r'LocalizedText': LocalizedTextSchema,
+    r'FirstAidStep': FirstAidStepSchema
+  },
   getId: _procedureGetId,
   getLinks: _procedureGetLinks,
   attach: _procedureAttach,
@@ -91,17 +63,34 @@ int _procedureEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
-  bytesCount += 3 + object.iconName.length * 3;
-  bytesCount += 3 + object.steps.length * 3;
   {
-    final offsets = allOffsets[FirstAidStep]!;
-    for (var i = 0; i < object.steps.length; i++) {
-      final value = object.steps[i];
-      bytesCount += FirstAidStepSchema.estimateSize(value, offsets, allOffsets);
+    final value = object.iconName;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
     }
   }
-  bytesCount += 3 + object.titleEn.length * 3;
-  bytesCount += 3 + object.titleSw.length * 3;
+  {
+    final list = object.steps;
+    if (list != null) {
+      bytesCount += 3 + list.length * 3;
+      {
+        final offsets = allOffsets[FirstAidStep]!;
+        for (var i = 0; i < list.length; i++) {
+          final value = list[i];
+          bytesCount +=
+              FirstAidStepSchema.estimateSize(value, offsets, allOffsets);
+        }
+      }
+    }
+  }
+  {
+    final value = object.title;
+    if (value != null) {
+      bytesCount += 3 +
+          LocalizedTextSchema.estimateSize(
+              value, allOffsets[LocalizedText]!, allOffsets);
+    }
+  }
   return bytesCount;
 }
 
@@ -119,8 +108,12 @@ void _procedureSerialize(
     FirstAidStepSchema.serialize,
     object.steps,
   );
-  writer.writeString(offsets[3], object.titleEn);
-  writer.writeString(offsets[4], object.titleSw);
+  writer.writeObject<LocalizedText>(
+    offsets[3],
+    allOffsets,
+    LocalizedTextSchema.serialize,
+    object.title,
+  );
 }
 
 Procedure _procedureDeserialize(
@@ -130,18 +123,20 @@ Procedure _procedureDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Procedure();
-  object.iconName = reader.readString(offsets[0]);
+  object.iconName = reader.readStringOrNull(offsets[0]);
   object.id = id;
-  object.severityLevel = reader.readLong(offsets[1]);
+  object.severityLevel = reader.readLongOrNull(offsets[1]);
   object.steps = reader.readObjectList<FirstAidStep>(
-        offsets[2],
-        FirstAidStepSchema.deserialize,
-        allOffsets,
-        FirstAidStep(),
-      ) ??
-      [];
-  object.titleEn = reader.readString(offsets[3]);
-  object.titleSw = reader.readString(offsets[4]);
+    offsets[2],
+    FirstAidStepSchema.deserialize,
+    allOffsets,
+    FirstAidStep(),
+  );
+  object.title = reader.readObjectOrNull<LocalizedText>(
+    offsets[3],
+    LocalizedTextSchema.deserialize,
+    allOffsets,
+  );
   return object;
 }
 
@@ -153,21 +148,22 @@ P _procedureDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 1:
-      return (reader.readLong(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 2:
       return (reader.readObjectList<FirstAidStep>(
-            offset,
-            FirstAidStepSchema.deserialize,
-            allOffsets,
-            FirstAidStep(),
-          ) ??
-          []) as P;
+        offset,
+        FirstAidStepSchema.deserialize,
+        allOffsets,
+        FirstAidStep(),
+      )) as P;
     case 3:
-      return (reader.readString(offset)) as P;
-    case 4:
-      return (reader.readString(offset)) as P;
+      return (reader.readObjectOrNull<LocalizedText>(
+        offset,
+        LocalizedTextSchema.deserialize,
+        allOffsets,
+      )) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -190,22 +186,6 @@ extension ProcedureQueryWhereSort
   QueryBuilder<Procedure, Procedure, QAfterWhere> anyId() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(const IdWhereClause.any());
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterWhere> anyTitleEn() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        const IndexWhereClause.any(indexName: r'titleEn'),
-      );
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterWhere> anyTitleSw() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        const IndexWhereClause.any(indexName: r'titleSw'),
-      );
     });
   }
 }
@@ -276,284 +256,29 @@ extension ProcedureQueryWhere
       ));
     });
   }
-
-  QueryBuilder<Procedure, Procedure, QAfterWhereClause> titleEnEqualTo(
-      String titleEn) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'titleEn',
-        value: [titleEn],
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterWhereClause> titleEnNotEqualTo(
-      String titleEn) {
-    return QueryBuilder.apply(this, (query) {
-      if (query.whereSort == Sort.asc) {
-        return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'titleEn',
-              lower: [],
-              upper: [titleEn],
-              includeUpper: false,
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'titleEn',
-              lower: [titleEn],
-              includeLower: false,
-              upper: [],
-            ));
-      } else {
-        return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'titleEn',
-              lower: [titleEn],
-              includeLower: false,
-              upper: [],
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'titleEn',
-              lower: [],
-              upper: [titleEn],
-              includeUpper: false,
-            ));
-      }
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterWhereClause> titleEnGreaterThan(
-    String titleEn, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'titleEn',
-        lower: [titleEn],
-        includeLower: include,
-        upper: [],
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterWhereClause> titleEnLessThan(
-    String titleEn, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'titleEn',
-        lower: [],
-        upper: [titleEn],
-        includeUpper: include,
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterWhereClause> titleEnBetween(
-    String lowerTitleEn,
-    String upperTitleEn, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'titleEn',
-        lower: [lowerTitleEn],
-        includeLower: includeLower,
-        upper: [upperTitleEn],
-        includeUpper: includeUpper,
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterWhereClause> titleEnStartsWith(
-      String TitleEnPrefix) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'titleEn',
-        lower: [TitleEnPrefix],
-        upper: ['$TitleEnPrefix\u{FFFFF}'],
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterWhereClause> titleEnIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'titleEn',
-        value: [''],
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterWhereClause> titleEnIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      if (query.whereSort == Sort.asc) {
-        return query
-            .addWhereClause(IndexWhereClause.lessThan(
-              indexName: r'titleEn',
-              upper: [''],
-            ))
-            .addWhereClause(IndexWhereClause.greaterThan(
-              indexName: r'titleEn',
-              lower: [''],
-            ));
-      } else {
-        return query
-            .addWhereClause(IndexWhereClause.greaterThan(
-              indexName: r'titleEn',
-              lower: [''],
-            ))
-            .addWhereClause(IndexWhereClause.lessThan(
-              indexName: r'titleEn',
-              upper: [''],
-            ));
-      }
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterWhereClause> titleSwEqualTo(
-      String titleSw) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'titleSw',
-        value: [titleSw],
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterWhereClause> titleSwNotEqualTo(
-      String titleSw) {
-    return QueryBuilder.apply(this, (query) {
-      if (query.whereSort == Sort.asc) {
-        return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'titleSw',
-              lower: [],
-              upper: [titleSw],
-              includeUpper: false,
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'titleSw',
-              lower: [titleSw],
-              includeLower: false,
-              upper: [],
-            ));
-      } else {
-        return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'titleSw',
-              lower: [titleSw],
-              includeLower: false,
-              upper: [],
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'titleSw',
-              lower: [],
-              upper: [titleSw],
-              includeUpper: false,
-            ));
-      }
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterWhereClause> titleSwGreaterThan(
-    String titleSw, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'titleSw',
-        lower: [titleSw],
-        includeLower: include,
-        upper: [],
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterWhereClause> titleSwLessThan(
-    String titleSw, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'titleSw',
-        lower: [],
-        upper: [titleSw],
-        includeUpper: include,
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterWhereClause> titleSwBetween(
-    String lowerTitleSw,
-    String upperTitleSw, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'titleSw',
-        lower: [lowerTitleSw],
-        includeLower: includeLower,
-        upper: [upperTitleSw],
-        includeUpper: includeUpper,
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterWhereClause> titleSwStartsWith(
-      String TitleSwPrefix) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'titleSw',
-        lower: [TitleSwPrefix],
-        upper: ['$TitleSwPrefix\u{FFFFF}'],
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterWhereClause> titleSwIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'titleSw',
-        value: [''],
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterWhereClause> titleSwIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      if (query.whereSort == Sort.asc) {
-        return query
-            .addWhereClause(IndexWhereClause.lessThan(
-              indexName: r'titleSw',
-              upper: [''],
-            ))
-            .addWhereClause(IndexWhereClause.greaterThan(
-              indexName: r'titleSw',
-              lower: [''],
-            ));
-      } else {
-        return query
-            .addWhereClause(IndexWhereClause.greaterThan(
-              indexName: r'titleSw',
-              lower: [''],
-            ))
-            .addWhereClause(IndexWhereClause.lessThan(
-              indexName: r'titleSw',
-              upper: [''],
-            ));
-      }
-    });
-  }
 }
 
 extension ProcedureQueryFilter
     on QueryBuilder<Procedure, Procedure, QFilterCondition> {
+  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> iconNameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'iconName',
+      ));
+    });
+  }
+
+  QueryBuilder<Procedure, Procedure, QAfterFilterCondition>
+      iconNameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'iconName',
+      ));
+    });
+  }
+
   QueryBuilder<Procedure, Procedure, QAfterFilterCondition> iconNameEqualTo(
-    String value, {
+    String? value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -566,7 +291,7 @@ extension ProcedureQueryFilter
   }
 
   QueryBuilder<Procedure, Procedure, QAfterFilterCondition> iconNameGreaterThan(
-    String value, {
+    String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -581,7 +306,7 @@ extension ProcedureQueryFilter
   }
 
   QueryBuilder<Procedure, Procedure, QAfterFilterCondition> iconNameLessThan(
-    String value, {
+    String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -596,8 +321,8 @@ extension ProcedureQueryFilter
   }
 
   QueryBuilder<Procedure, Procedure, QAfterFilterCondition> iconNameBetween(
-    String lower,
-    String upper, {
+    String? lower,
+    String? upper, {
     bool includeLower = true,
     bool includeUpper = true,
     bool caseSensitive = true,
@@ -737,7 +462,25 @@ extension ProcedureQueryFilter
   }
 
   QueryBuilder<Procedure, Procedure, QAfterFilterCondition>
-      severityLevelEqualTo(int value) {
+      severityLevelIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'severityLevel',
+      ));
+    });
+  }
+
+  QueryBuilder<Procedure, Procedure, QAfterFilterCondition>
+      severityLevelIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'severityLevel',
+      ));
+    });
+  }
+
+  QueryBuilder<Procedure, Procedure, QAfterFilterCondition>
+      severityLevelEqualTo(int? value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'severityLevel',
@@ -748,7 +491,7 @@ extension ProcedureQueryFilter
 
   QueryBuilder<Procedure, Procedure, QAfterFilterCondition>
       severityLevelGreaterThan(
-    int value, {
+    int? value, {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -762,7 +505,7 @@ extension ProcedureQueryFilter
 
   QueryBuilder<Procedure, Procedure, QAfterFilterCondition>
       severityLevelLessThan(
-    int value, {
+    int? value, {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -776,8 +519,8 @@ extension ProcedureQueryFilter
 
   QueryBuilder<Procedure, Procedure, QAfterFilterCondition>
       severityLevelBetween(
-    int lower,
-    int upper, {
+    int? lower,
+    int? upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
@@ -788,6 +531,22 @@ extension ProcedureQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> stepsIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'steps',
+      ));
+    });
+  }
+
+  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> stepsIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'steps',
       ));
     });
   }
@@ -877,264 +636,18 @@ extension ProcedureQueryFilter
     });
   }
 
-  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> titleEnEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> titleIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'titleEn',
-        value: value,
-        caseSensitive: caseSensitive,
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'title',
       ));
     });
   }
 
-  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> titleEnGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
+  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> titleIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'titleEn',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> titleEnLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'titleEn',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> titleEnBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'titleEn',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> titleEnStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'titleEn',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> titleEnEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'titleEn',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> titleEnContains(
-      String value,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'titleEn',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> titleEnMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'titleEn',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> titleEnIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'titleEn',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterFilterCondition>
-      titleEnIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'titleEn',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> titleSwEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'titleSw',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> titleSwGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'titleSw',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> titleSwLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'titleSw',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> titleSwBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'titleSw',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> titleSwStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'titleSw',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> titleSwEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'titleSw',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> titleSwContains(
-      String value,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'titleSw',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> titleSwMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'titleSw',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> titleSwIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'titleSw',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterFilterCondition>
-      titleSwIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'titleSw',
-        value: '',
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'title',
       ));
     });
   }
@@ -1146,6 +659,13 @@ extension ProcedureQueryObject
       FilterQuery<FirstAidStep> q) {
     return QueryBuilder.apply(this, (query) {
       return query.object(q, r'steps');
+    });
+  }
+
+  QueryBuilder<Procedure, Procedure, QAfterFilterCondition> title(
+      FilterQuery<LocalizedText> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'title');
     });
   }
 }
@@ -1175,30 +695,6 @@ extension ProcedureQuerySortBy on QueryBuilder<Procedure, Procedure, QSortBy> {
   QueryBuilder<Procedure, Procedure, QAfterSortBy> sortBySeverityLevelDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'severityLevel', Sort.desc);
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterSortBy> sortByTitleEn() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'titleEn', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterSortBy> sortByTitleEnDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'titleEn', Sort.desc);
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterSortBy> sortByTitleSw() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'titleSw', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterSortBy> sortByTitleSwDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'titleSw', Sort.desc);
     });
   }
 }
@@ -1240,30 +736,6 @@ extension ProcedureQuerySortThenBy
       return query.addSortBy(r'severityLevel', Sort.desc);
     });
   }
-
-  QueryBuilder<Procedure, Procedure, QAfterSortBy> thenByTitleEn() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'titleEn', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterSortBy> thenByTitleEnDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'titleEn', Sort.desc);
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterSortBy> thenByTitleSw() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'titleSw', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QAfterSortBy> thenByTitleSwDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'titleSw', Sort.desc);
-    });
-  }
 }
 
 extension ProcedureQueryWhereDistinct
@@ -1280,20 +752,6 @@ extension ProcedureQueryWhereDistinct
       return query.addDistinctBy(r'severityLevel');
     });
   }
-
-  QueryBuilder<Procedure, Procedure, QDistinct> distinctByTitleEn(
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'titleEn', caseSensitive: caseSensitive);
-    });
-  }
-
-  QueryBuilder<Procedure, Procedure, QDistinct> distinctByTitleSw(
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'titleSw', caseSensitive: caseSensitive);
-    });
-  }
 }
 
 extension ProcedureQueryProperty
@@ -1304,34 +762,28 @@ extension ProcedureQueryProperty
     });
   }
 
-  QueryBuilder<Procedure, String, QQueryOperations> iconNameProperty() {
+  QueryBuilder<Procedure, String?, QQueryOperations> iconNameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'iconName');
     });
   }
 
-  QueryBuilder<Procedure, int, QQueryOperations> severityLevelProperty() {
+  QueryBuilder<Procedure, int?, QQueryOperations> severityLevelProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'severityLevel');
     });
   }
 
-  QueryBuilder<Procedure, List<FirstAidStep>, QQueryOperations>
+  QueryBuilder<Procedure, List<FirstAidStep>?, QQueryOperations>
       stepsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'steps');
     });
   }
 
-  QueryBuilder<Procedure, String, QQueryOperations> titleEnProperty() {
+  QueryBuilder<Procedure, LocalizedText?, QQueryOperations> titleProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'titleEn');
-    });
-  }
-
-  QueryBuilder<Procedure, String, QQueryOperations> titleSwProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'titleSw');
+      return query.addPropertyName(r'title');
     });
   }
 }
@@ -1352,18 +804,14 @@ const FirstAidStepSchema = Schema(
       name: r'imageResource',
       type: IsarType.string,
     ),
-    r'instructionEn': PropertySchema(
+    r'instruction': PropertySchema(
       id: 1,
-      name: r'instructionEn',
-      type: IsarType.string,
-    ),
-    r'instructionSw': PropertySchema(
-      id: 2,
-      name: r'instructionSw',
-      type: IsarType.string,
+      name: r'instruction',
+      type: IsarType.object,
+      target: r'LocalizedText',
     ),
     r'stepOrder': PropertySchema(
-      id: 3,
+      id: 2,
       name: r'stepOrder',
       type: IsarType.long,
     )
@@ -1380,9 +828,20 @@ int _firstAidStepEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
-  bytesCount += 3 + object.imageResource.length * 3;
-  bytesCount += 3 + object.instructionEn.length * 3;
-  bytesCount += 3 + object.instructionSw.length * 3;
+  {
+    final value = object.imageResource;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.instruction;
+    if (value != null) {
+      bytesCount += 3 +
+          LocalizedTextSchema.estimateSize(
+              value, allOffsets[LocalizedText]!, allOffsets);
+    }
+  }
   return bytesCount;
 }
 
@@ -1393,9 +852,13 @@ void _firstAidStepSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.imageResource);
-  writer.writeString(offsets[1], object.instructionEn);
-  writer.writeString(offsets[2], object.instructionSw);
-  writer.writeLong(offsets[3], object.stepOrder);
+  writer.writeObject<LocalizedText>(
+    offsets[1],
+    allOffsets,
+    LocalizedTextSchema.serialize,
+    object.instruction,
+  );
+  writer.writeLong(offsets[2], object.stepOrder);
 }
 
 FirstAidStep _firstAidStepDeserialize(
@@ -1405,10 +868,13 @@ FirstAidStep _firstAidStepDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = FirstAidStep();
-  object.imageResource = reader.readString(offsets[0]);
-  object.instructionEn = reader.readString(offsets[1]);
-  object.instructionSw = reader.readString(offsets[2]);
-  object.stepOrder = reader.readLong(offsets[3]);
+  object.imageResource = reader.readStringOrNull(offsets[0]);
+  object.instruction = reader.readObjectOrNull<LocalizedText>(
+    offsets[1],
+    LocalizedTextSchema.deserialize,
+    allOffsets,
+  );
+  object.stepOrder = reader.readLongOrNull(offsets[2]);
   return object;
 }
 
@@ -1420,13 +886,15 @@ P _firstAidStepDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 1:
-      return (reader.readString(offset)) as P;
+      return (reader.readObjectOrNull<LocalizedText>(
+        offset,
+        LocalizedTextSchema.deserialize,
+        allOffsets,
+      )) as P;
     case 2:
-      return (reader.readString(offset)) as P;
-    case 3:
-      return (reader.readLong(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -1435,8 +903,26 @@ P _firstAidStepDeserializeProp<P>(
 extension FirstAidStepQueryFilter
     on QueryBuilder<FirstAidStep, FirstAidStep, QFilterCondition> {
   QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
+      imageResourceIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'imageResource',
+      ));
+    });
+  }
+
+  QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
+      imageResourceIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'imageResource',
+      ));
+    });
+  }
+
+  QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
       imageResourceEqualTo(
-    String value, {
+    String? value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -1450,7 +936,7 @@ extension FirstAidStepQueryFilter
 
   QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
       imageResourceGreaterThan(
-    String value, {
+    String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -1466,7 +952,7 @@ extension FirstAidStepQueryFilter
 
   QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
       imageResourceLessThan(
-    String value, {
+    String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -1482,8 +968,8 @@ extension FirstAidStepQueryFilter
 
   QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
       imageResourceBetween(
-    String lower,
-    String upper, {
+    String? lower,
+    String? upper, {
     bool includeLower = true,
     bool includeUpper = true,
     bool caseSensitive = true,
@@ -1571,279 +1057,43 @@ extension FirstAidStepQueryFilter
   }
 
   QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
-      instructionEnEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+      instructionIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'instructionEn',
-        value: value,
-        caseSensitive: caseSensitive,
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'instruction',
       ));
     });
   }
 
   QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
-      instructionEnGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
+      instructionIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'instructionEn',
-        value: value,
-        caseSensitive: caseSensitive,
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'instruction',
       ));
     });
   }
 
   QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
-      instructionEnLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
+      stepOrderIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'instructionEn',
-        value: value,
-        caseSensitive: caseSensitive,
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'stepOrder',
       ));
     });
   }
 
   QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
-      instructionEnBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
+      stepOrderIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'instructionEn',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'stepOrder',
       ));
     });
   }
 
   QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
-      instructionEnStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'instructionEn',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
-      instructionEnEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'instructionEn',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
-      instructionEnContains(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'instructionEn',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
-      instructionEnMatches(String pattern, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'instructionEn',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
-      instructionEnIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'instructionEn',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
-      instructionEnIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'instructionEn',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
-      instructionSwEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'instructionSw',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
-      instructionSwGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'instructionSw',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
-      instructionSwLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'instructionSw',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
-      instructionSwBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'instructionSw',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
-      instructionSwStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'instructionSw',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
-      instructionSwEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'instructionSw',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
-      instructionSwContains(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'instructionSw',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
-      instructionSwMatches(String pattern, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'instructionSw',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
-      instructionSwIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'instructionSw',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
-      instructionSwIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'instructionSw',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
-      stepOrderEqualTo(int value) {
+      stepOrderEqualTo(int? value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'stepOrder',
@@ -1854,7 +1104,7 @@ extension FirstAidStepQueryFilter
 
   QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
       stepOrderGreaterThan(
-    int value, {
+    int? value, {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -1868,7 +1118,7 @@ extension FirstAidStepQueryFilter
 
   QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
       stepOrderLessThan(
-    int value, {
+    int? value, {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -1882,8 +1132,8 @@ extension FirstAidStepQueryFilter
 
   QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition>
       stepOrderBetween(
-    int lower,
-    int upper, {
+    int? lower,
+    int? upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
@@ -1900,4 +1150,568 @@ extension FirstAidStepQueryFilter
 }
 
 extension FirstAidStepQueryObject
-    on QueryBuilder<FirstAidStep, FirstAidStep, QFilterCondition> {}
+    on QueryBuilder<FirstAidStep, FirstAidStep, QFilterCondition> {
+  QueryBuilder<FirstAidStep, FirstAidStep, QAfterFilterCondition> instruction(
+      FilterQuery<LocalizedText> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'instruction');
+    });
+  }
+}
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
+const LocalizedTextSchema = Schema(
+  name: r'LocalizedText',
+  id: -3704307675503032859,
+  properties: {
+    r'en': PropertySchema(
+      id: 0,
+      name: r'en',
+      type: IsarType.string,
+    ),
+    r'so': PropertySchema(
+      id: 1,
+      name: r'so',
+      type: IsarType.string,
+    ),
+    r'sw': PropertySchema(
+      id: 2,
+      name: r'sw',
+      type: IsarType.string,
+    )
+  },
+  estimateSize: _localizedTextEstimateSize,
+  serialize: _localizedTextSerialize,
+  deserialize: _localizedTextDeserialize,
+  deserializeProp: _localizedTextDeserializeProp,
+);
+
+int _localizedTextEstimateSize(
+  LocalizedText object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  {
+    final value = object.en;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.so;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.sw;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  return bytesCount;
+}
+
+void _localizedTextSerialize(
+  LocalizedText object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeString(offsets[0], object.en);
+  writer.writeString(offsets[1], object.so);
+  writer.writeString(offsets[2], object.sw);
+}
+
+LocalizedText _localizedTextDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = LocalizedText();
+  object.en = reader.readStringOrNull(offsets[0]);
+  object.so = reader.readStringOrNull(offsets[1]);
+  object.sw = reader.readStringOrNull(offsets[2]);
+  return object;
+}
+
+P _localizedTextDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readStringOrNull(offset)) as P;
+    case 1:
+      return (reader.readStringOrNull(offset)) as P;
+    case 2:
+      return (reader.readStringOrNull(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+extension LocalizedTextQueryFilter
+    on QueryBuilder<LocalizedText, LocalizedText, QFilterCondition> {
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition> enIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'en',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition>
+      enIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'en',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition> enEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'en',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition>
+      enGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'en',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition> enLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'en',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition> enBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'en',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition>
+      enStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'en',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition> enEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'en',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition> enContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'en',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition> enMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'en',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition>
+      enIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'en',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition>
+      enIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'en',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition> soIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'so',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition>
+      soIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'so',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition> soEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'so',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition>
+      soGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'so',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition> soLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'so',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition> soBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'so',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition>
+      soStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'so',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition> soEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'so',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition> soContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'so',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition> soMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'so',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition>
+      soIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'so',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition>
+      soIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'so',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition> swIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'sw',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition>
+      swIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'sw',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition> swEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'sw',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition>
+      swGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'sw',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition> swLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'sw',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition> swBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'sw',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition>
+      swStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'sw',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition> swEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'sw',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition> swContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'sw',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition> swMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'sw',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition>
+      swIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'sw',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LocalizedText, LocalizedText, QAfterFilterCondition>
+      swIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'sw',
+        value: '',
+      ));
+    });
+  }
+}
+
+extension LocalizedTextQueryObject
+    on QueryBuilder<LocalizedText, LocalizedText, QFilterCondition> {}

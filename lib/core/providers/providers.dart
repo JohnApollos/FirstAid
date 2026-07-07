@@ -22,6 +22,8 @@ class LocaleNotifier extends StateNotifier<Locale> {
   void toggleLocale() {
     if (state.languageCode == 'en') {
       state = const Locale('sw');
+    } else if (state.languageCode == 'sw') {
+      state = const Locale('so');
     } else {
       state = const Locale('en');
     }

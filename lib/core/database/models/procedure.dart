@@ -6,22 +6,28 @@ part 'procedure.g.dart';
 class Procedure {
   Id id = Isar.autoIncrement;
 
-  @Index(type: IndexType.value)
-  late String titleEn;
-
-  @Index(type: IndexType.value)
-  late String titleSw;
-
-  late String iconName;
-  late int severityLevel;
-
-  late List<FirstAidStep> steps;
+  LocalizedText? title;
+  String? iconName;
+  int? severityLevel;
+  List<FirstAidStep>? steps;
 }
 
 @embedded
 class FirstAidStep {
-  late int stepOrder;
-  late String instructionEn;
-  late String instructionSw;
-  late String imageResource;
+  int? stepOrder;
+  LocalizedText? instruction;
+  String? imageResource;
+}
+
+@embedded
+class LocalizedText {
+  String? en;
+  String? sw;
+  String? so;
+
+  String get(String lang) {
+    if (lang == 'so') return so ?? sw ?? en ?? '';
+    if (lang == 'sw') return sw ?? en ?? '';
+    return en ?? '';
+  }
 }

@@ -1,4 +1,5 @@
 import 'package:isar/isar.dart';
+import 'procedure.dart';
 
 part 'quiz_question.g.dart';
 
@@ -6,14 +7,19 @@ part 'quiz_question.g.dart';
 class QuizQuestion {
   Id id = Isar.autoIncrement;
 
-  late String questionEn;
-  late String questionSw;
+  LocalizedText? question;
 
-  late List<String> optionsEn;
-  late List<String> optionsSw;
+  List<String>? optionsEn;
+  List<String>? optionsSw;
+  List<String>? optionsSo;
 
-  late int correctOptionIndex;
+  int? correctOptionIndex;
 
-  late String explanationEn;
-  late String explanationSw;
+  LocalizedText? explanation;
+
+  List<String> getOptions(String lang) {
+    if (lang == 'so') return optionsSo ?? optionsSw ?? optionsEn ?? [];
+    if (lang == 'sw') return optionsSw ?? optionsEn ?? [];
+    return optionsEn ?? [];
+  }
 }

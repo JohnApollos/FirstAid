@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.0.0] - 2026-07-07
+
+### Added
+- **Somali Language Support (`so`)**: Implemented Somali UI localization and speech TTS engines to support regional language demographics.
+- **Extensible Multilingual Database Schemas**: Refactored `Procedure` and `QuizQuestion` schemas to use an embedded `LocalizedText` model with dynamic regional fallback logic.
+- **KDPA 2019 Privacy Onboarding**: Added a trilingual (English, Swahili, Somali) onboarding consent dialog. Gated all database telemetry event logging to require explicit user approval.
+- **Offline Referral Directories**: Populated Kenya Red Cross regional offices and county referral hospitals directories for the Northern Region pilot (Garissa, Wajir, Mandera, and Dadaab refugee camps).
+- **Two-Tier Regional SOS Routing**: Dynamic SOS call buttons that dial local regional dispatch hotlines if configured, falling back to the national EPlus `1199` hotline.
+- **CPR Pace Tester**: Tap-based compression pace tracker featuring real-time BPM calculation, streak statistics, and light haptic feedback.
+- **Hygiene & Infection Control warning audit**: Added protective glove usage and hand washing instructions to critical first aid seeds.
+- **Release Mode Boot Crash Fix**: Fixed immediate startup crash in compiled release builds by gating Isar Inspector initialization behind `kDebugMode`.
+
+### Changed
+- Refactored `Metronome` and `EmergencySOS` screens to enforce standard maximum tablet width boundaries (800dp) in wide viewports.
+- Deleted unused variables and imports in screens and providers.
+
+---
+
 ## [2.0.0] - 2026-07-03
 
 ### Added

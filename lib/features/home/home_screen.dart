@@ -16,7 +16,8 @@ final selectedProcedureProvider = StateProvider<Procedure?>((ref) => null);
 final proceduresProvider = FutureProvider<List<Procedure>>((ref) async {
   final dbService = ref.watch(isarServiceProvider);
   final query = ref.watch(searchQueryProvider);
-  return await dbService.searchProcedures(query);
+  final locale = ref.watch(localeProvider);
+  return await dbService.searchProcedures(query, locale.languageCode);
 });
 
 class HomeScreen extends ConsumerWidget {
@@ -41,7 +42,7 @@ class HomeScreen extends ConsumerWidget {
               },
               icon: const Icon(Icons.language, color: Colors.white),
               label: Text(
-                locale.languageCode == 'en' ? 'SW' : 'EN',
+                locale.languageCode.toUpperCase(),
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ),
@@ -124,7 +125,7 @@ class HomeScreen extends ConsumerWidget {
   Widget _buildGrid(BuildContext context, WidgetRef ref, bool isDualPane) {
     final proceduresAsync = ref.watch(proceduresProvider);
     final locale = ref.watch(localeProvider);
-    final isSw = locale.languageCode == 'sw';
+    final langCode = locale.languageCode;
 
     return proceduresAsync.when(
       data: (procedures) {
@@ -145,13 +146,13 @@ class HomeScreen extends ConsumerWidget {
           itemCount: procedures.length,
           itemBuilder: (context, idx) {
             final proc = procedures[idx];
-            final title = isSw ? proc.titleSw : proc.titleEn;
+            final title = proc.title?.get(langCode) ?? '';
             final isCritical = proc.severityLevel == 1;
 
             return InkWell(
               onTap: () {
                 // Log search / view event to telemetry
-                ref.read(isarServiceProvider).logEvent("view_procedure", {"id": proc.id, "title": proc.titleEn});
+                ref.read(isarServiceProvider).logEvent("view_procedure", {"id": proc.id, "title": proc.title?.en ?? ''});
 
                 if (isDualPane) {
                   ref.read(selectedProcedureProvider.notifier).state = proc;

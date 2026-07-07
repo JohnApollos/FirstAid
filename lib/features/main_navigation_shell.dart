@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firstaid/l10n/app_localizations.dart';
+import '../core/utils/consent_dialog.dart';
 import 'home/home_screen.dart';
 import 'emergency/emergency_screen.dart';
 import 'training/training_screen.dart';
@@ -9,11 +10,25 @@ import 'about/about_screen.dart';
 // State provider to manage the active bottom navigation tab index
 final navigationIndexProvider = StateProvider<int>((ref) => 0);
 
-class MainNavigationShell extends ConsumerWidget {
+class MainNavigationShell extends ConsumerStatefulWidget {
   const MainNavigationShell({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MainNavigationShell> createState() => _MainNavigationShellState();
+}
+
+class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
+  @override
+  void initState() {
+    super.initState();
+    // Launch the trilingual privacy consent dialog on first launch
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ConsentDialog.showIfNeeded(context);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final activeTabIdx = ref.watch(navigationIndexProvider);
     final l10n = AppLocalizations.of(context)!;
 

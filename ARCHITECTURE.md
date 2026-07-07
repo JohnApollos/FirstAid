@@ -30,37 +30,62 @@ lib/
 
 FirstAid+ uses **Isar NoSQL** as its local storage engine. Isar runs compiled C bindings for rapid, zero-lag query execution on ARM processors.
 
-### Collections
+### Collections & Embedded Models
 
-#### 1. `Procedure`
-Stores high-level emergency medical categories with full-text search indexing on titles.
+#### 1. `LocalizedText` (Embedded)
+Provides scalable multilingual support across the entire database.
+- `en`: English translation text.
+- `sw`: Swahili translation text.
+- `so`: Somali translation text.
+- `get(lang)`: Helper method returning the localized string, with cascading fallbacks (`so` -> `sw` -> `en`).
+
+#### 2. `Procedure`
+Stores high-level emergency medical categories.
 - `id`: Unique integer primary key (`Id`).
-- `titleEn` / `titleSw`: Category names.
+- `title`: Localized category title (`LocalizedText`).
 - `iconName`: Asset identifier.
 - `severityLevel`: Triage classification (`1` for Critical, `2` for Standard).
 - `steps`: Embedded list of `FirstAidStep` objects.
 
-#### 2. `FirstAidStep` (Embedded)
+#### 3. `FirstAidStep` (Embedded)
 Contains the sequential steps for each emergency protocol.
 - `stepOrder`: Sequence order index.
-- `instructionEn` / `instructionSw`: L10n step guidance text.
+- `instruction`: Localized step guidance text (`LocalizedText`).
 - `imageResource`: Illustration drawable asset key.
 
-#### 3. `QuizQuestion`
+#### 4. `QuizQuestion`
 Powers the preparedness assessment module.
 - `id`: Unique primary key.
-- `questionEn` / `questionSw`: Question prompts.
-- `optionsEn` / `optionsSw`: Array of multiple-choice options.
+- `question`: Localized question prompt (`LocalizedText`).
+- `optionsEn` / `optionsSw` / `optionsSo`: Arrays of localized multiple-choice options.
 - `correctOptionIndex`: Index (`0` to `3`) of the correct answer.
-- `explanationEn` / `explanationSw`: Answer key rationales.
+- `explanation`: Localized answer key rationale (`LocalizedText`).
 
-#### 4. `TelemetryLog`
+#### 5. `RegionalOffice`
+Tracks Kenya Red Cross regional administrative contacts.
+- `id`: Unique primary key.
+- `regionName`: KRCS Region name (e.g. "Northern Region").
+- `countyName`: County administrative center.
+- `locationName`: Description of the physical office location.
+- `contactPhone`: Local hotline telephone number.
+
+#### 6. `ReferralHospital`
+Tracks level 4 and 5 county emergency response health facilities.
+- `id`: Unique primary key.
+- `hospitalName`: Official name of the medical facility.
+- `regionName`: KRCS Region.
+- `countyName`: County location.
+- `capabilityTier`: Healthcare tier classification (e.g., "Level 5 Hospital").
+- `contactPhone`: Emergency hotline telephone number.
+
+#### 7. `TelemetryLog`
 Caches user action logs offline.
 - `id`: Unique primary key.
-- `eventName`: Activity descriptor (e.g., `view_procedure`).
-- `metadataJson`: Key-value pair strings describing the event details.
+- `eventType`: Activity descriptor (e.g., `view_procedure`).
+- `details`: Key-value pair strings describing the event details.
 - `timestamp`: Creation date.
 - `synced`: Sync flag (`true`/`false`).
+*Note: Telemetry log writes are completely gated behind user consent stored in SharedPreferences, in compliance with KDPA 2019.*
 
 ---
 

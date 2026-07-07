@@ -52,7 +52,7 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
     super.dispose();
   }
 
-  Future<void> _toggleSpeech(bool isSw) async {
+  Future<void> _toggleSpeech(String langCode) async {
     if (_isSpeaking) {
       await _flutterTts.stop();
       setState(() {
@@ -60,14 +60,20 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
       });
     } else {
       // Set correct voice language locale
-      final lang = isSw ? 'sw-KE' : 'en-US';
-      await _flutterTts.setLanguage(lang);
+      String ttsLang = 'en-US';
+      if (langCode == 'sw') {
+        ttsLang = 'sw-KE';
+      } else if (langCode == 'so') {
+        ttsLang = 'so-SO';
+      }
+      await _flutterTts.setLanguage(ttsLang);
       await _flutterTts.setSpeechRate(0.45); // Slower speech rate for crisis comprehension
 
       // Concatenate and read instructions
       final buffer = StringBuffer();
-      for (final step in widget.procedure.steps) {
-        final text = isSw ? step.instructionSw : step.instructionEn;
+      final steps = widget.procedure.steps ?? [];
+      for (final step in steps) {
+        final text = step.instruction?.get(langCode) ?? '';
         buffer.write("Step ${step.stepOrder}. $text. ");
       }
 
@@ -79,9 +85,9 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
   @override
   Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider);
-    final isSw = locale.languageCode == 'sw';
-    final title = isSw ? widget.procedure.titleSw : widget.procedure.titleEn;
-    final steps = widget.procedure.steps;
+    final langCode = locale.languageCode;
+    final title = widget.procedure.title?.get(langCode) ?? '';
+    final steps = widget.procedure.steps ?? [];
 
     final body = Stack(
       children: [
@@ -90,7 +96,7 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
           itemCount: steps.length,
           itemBuilder: (context, idx) {
             final step = steps[idx];
-            final instruction = isSw ? step.instructionSw : step.instructionEn;
+            final instruction = step.instruction?.get(langCode) ?? '';
 
             return Card(
               margin: const EdgeInsets.only(bottom: 16),
@@ -180,14 +186,14 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
           child: FloatingActionButton.extended(
             backgroundColor: Colors.red[700],
             foregroundColor: Colors.white,
-            onPressed: () => _toggleSpeech(isSw),
+            onPressed: () => _toggleSpeech(langCode),
             icon: Icon(
               _isSpeaking ? Icons.volume_off : Icons.volume_up,
             ),
             label: Text(
               _isSpeaking 
-                ? (isSw ? "Zima Sauti" : "Stop Voice") 
-                : (isSw ? "Sikiliza Maelezo" : "Listen to Guide"),
+                ? (langCode == 'so' ? "Dami Codka" : (langCode == 'sw' ? "Zima Sauti" : "Stop Voice")) 
+                : (langCode == 'so' ? "Dhageyso Hagaha" : (langCode == 'sw' ? "Sikiliza Maelezo" : "Listen to Guide")),
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),

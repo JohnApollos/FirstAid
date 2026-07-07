@@ -12,7 +12,7 @@ FirstAid+ is offline-first. To add new medical guidelines:
 2. **Update Database Seeding**:
    - Open `lib/core/database/isar_service.dart`.
    - Update the seed procedure list inside the DB initialization code.
-   - Provide complete text strings for both English and Swahili translations.
+   - Provide localized text strings for English (`en`), Swahili (`sw`), and Somali (`so`) translations inside the `LocalizedText` constructor blocks.
 3. **Illustrations**:
    - Add high-contrast illustration files to `assets/images/` (in PNG or JPG format).
    - Ensure the file name is mapped in the step's `imageResource` field.

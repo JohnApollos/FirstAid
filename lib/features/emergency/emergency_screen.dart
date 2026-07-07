@@ -3,8 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firstaid/l10n/app_localizations.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/providers/providers.dart';
+import '../../core/database/models/regional_directory.dart';
+import 'medical_id_screen.dart';
 
 class EmergencyScreen extends ConsumerStatefulWidget {
   const EmergencyScreen({super.key});
@@ -18,22 +21,96 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen> {
   bool _permissionGranted = false;
   bool _loading = true;
 
+  // Medical ID Fields
+  String _medName = '';
+  String _medBloodGroup = 'Unknown';
+  String _medAllergies = '';
+  String _medIceName = '';
+  String _medIcePhone = '';
+  String _selectedRegion = 'Northern Region';
+  String _regionalHotline = '+254 722 000 001';
+
+  // Referral Directory Fields
+  List<ReferralHospital> _allHospitals = [];
+  List<ReferralHospital> _filteredHospitals = [];
+  List<RegionalOffice> _allOffices = [];
+  List<RegionalOffice> _filteredOffices = [];
+  final _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     _fetchLocation();
+    _loadMedicalId();
+    _loadDirectory();
+  }
+
+  Future<void> _loadMedicalId() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _medName = prefs.getString('med_name') ?? '';
+      _medBloodGroup = prefs.getString('med_blood_group') ?? 'Unknown';
+      _medAllergies = prefs.getString('med_allergies') ?? '';
+      _medIceName = prefs.getString('med_ice_name') ?? '';
+      _medIcePhone = prefs.getString('med_ice_phone') ?? '';
+      _selectedRegion = prefs.getString('med_region') ?? 'Northern Region';
+
+      // Route SOS calls locally based on selected region
+      if (_selectedRegion == 'Northern Region') {
+        _regionalHotline = '+254 722 000 001'; // KRCS Northern Regional Office
+      } else if (_selectedRegion == 'Nairobi Region') {
+        _regionalHotline = '1199';
+      } else {
+        _regionalHotline = '1199'; // Default national hotline fallback
+      }
+    });
+  }
+
+  Future<void> _loadDirectory() async {
+    final isarService = ref.read(isarServiceProvider);
+    final hospitals = await isarService.getAllReferralHospitals();
+    final offices = await isarService.getAllRegionalOffices();
+    setState(() {
+      _allHospitals = hospitals;
+      _filteredHospitals = hospitals;
+      _allOffices = offices;
+      _filteredOffices = offices;
+    });
+  }
+
+  void _filterDirectory(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredHospitals = _allHospitals;
+        _filteredOffices = _allOffices;
+      } else {
+        final q = query.toLowerCase();
+        _filteredHospitals = _allHospitals.where((h) {
+          return (h.hospitalName?.toLowerCase().contains(q) ?? false) ||
+              (h.regionName?.toLowerCase().contains(q) ?? false) ||
+              (h.countyName?.toLowerCase().contains(q) ?? false) ||
+              (h.capabilityTier?.toLowerCase().contains(q) ?? false);
+        }).toList();
+        _filteredOffices = _allOffices.where((o) {
+          return (o.locationName?.toLowerCase().contains(q) ?? false) ||
+              (o.regionName?.toLowerCase().contains(q) ?? false) ||
+              (o.countyName?.toLowerCase().contains(q) ?? false);
+        }).toList();
+      }
+    });
   }
 
   Future<void> _fetchLocation() async {
     final locationService = ref.read(locationServiceProvider);
     final hasPermission = await locationService.checkPermission();
     
-    setState(() {
-      _permissionGranted = hasPermission;
-    });
+    if (mounted) {
+      setState(() {
+        _permissionGranted = hasPermission;
+      });
+    }
 
     if (hasPermission) {
-      // 1. Fetch initial position immediately so it loads instantly
       try {
         final pos = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high,
@@ -57,7 +134,6 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen> {
         } catch (_) {}
       }
 
-      // 2. Stream subsequent updates
       locationService.getLocationStream().listen((pos) {
         if (mounted) {
           setState(() {
@@ -67,23 +143,26 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen> {
         }
       });
     } else {
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
-  Future<void> _makeCall() async {
-    final url = Uri.parse('tel:1199');
-    // Log emergency dial event
-    ref.read(isarServiceProvider).logEvent("emergency_dial", {"number": "1199"});
+  Future<void> _makeCall(String number) async {
+    final url = Uri.parse('tel:$number');
+    ref.read(isarServiceProvider).logEvent("emergency_dial", {"number": number});
 
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not trigger system dialer.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not trigger system dialer.')),
+        );
+      }
     }
   }
 
@@ -100,21 +179,25 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen> {
         "Longitude ${_currentPosition!.longitude}. "
         "Accuracy: ${_currentPosition!.accuracy.toStringAsFixed(1)}m.";
 
-    // SMS URL scheme format: sms:number?body=encoded_message
     final uri = Uri.parse('sms:1199?body=${Uri.encodeComponent(message)}');
-
-    // Log SMS intent event
     ref.read(isarServiceProvider).logEvent("emergency_sms", {"number": "1199"});
 
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     } else {
-      // Fallback: Copy to clipboard if launcher fails
       await Clipboard.setData(ClipboardData(text: message));
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Coordinates copied to clipboard. Paste into SMS app.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Coordinates copied. Paste into SMS app.')),
+        );
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -125,13 +208,67 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen> {
       appBar: AppBar(
         title: Text(l10n.emergencyCall),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Big High-Visibility Call Card
+            // 1. Medical ID / ICE Card
+            Card(
+              elevation: 3,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.red.shade200, width: 1),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.assignment_ind, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text(
+                              "PARAMEDIC MEDICAL ID (ICE)",
+                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.grey),
+                          onPressed: () async {
+                            final updated = await Navigator.of(context).push(
+                              MaterialPageRoute(builder: (context) => const MedicalIdScreen()),
+                            );
+                            if (updated == true) {
+                              _loadMedicalId();
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                    const Divider(),
+                    const SizedBox(height: 4),
+                    _buildMedRow("Name / Jina:", _medName.isNotEmpty ? _medName : "Not Configured"),
+                    const SizedBox(height: 8),
+                    _buildMedRow("Blood Group:", _medBloodGroup),
+                    const SizedBox(height: 8),
+                    _buildMedRow("Allergies / Mzio:", _medAllergies.isNotEmpty ? _medAllergies : "None reported"),
+                    const SizedBox(height: 8),
+                    _buildMedRow("ICE Contact:", _medIceName.isNotEmpty ? "$_medIceName ($_medIcePhone)" : "Not Configured"),
+                    const SizedBox(height: 8),
+                    _buildMedRow("Home KRCS Region:", _selectedRegion),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 2. High-Visibility Two-Tier Call Card
             Card(
               color: Colors.red[50],
               elevation: 4,
@@ -140,37 +277,62 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen> {
                 side: const BorderSide(color: Colors.red, width: 2),
               ),
               child: Padding(
-                padding: const EdgeInsets.all(24.0),
+                padding: const EdgeInsets.all(20.0),
                 child: Column(
                   children: [
-                    const Icon(
-                      Icons.emergency,
-                      size: 80,
-                      color: Colors.red,
+                    const Icon(Icons.contact_support, size: 60, color: Colors.red),
+                    const SizedBox(height: 12),
+                    const Text(
+                      "TWO-TIER EMERGENCY SOS ROUTING",
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black54),
                     ),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
+                    const SizedBox(height: 16),
+
+                    // Tier 1: Regional Dispatch Hotline
+                    if (_selectedRegion != 'Nairobi Region' && _selectedRegion.isNotEmpty) ...[
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red[900],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: () => _makeCall(_regionalHotline),
+                        icon: const Icon(Icons.location_on),
+                        label: Text(
+                          "Call $_selectedRegion Dispatch",
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+
+                    // Tier 2: National Fallback Hotline (1199)
+                    ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
-                        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 32),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
-                      onPressed: _makeCall,
-                      child: Text(
-                        l10n.emergencyCall,
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      onPressed: () => _makeCall('1199'),
+                      icon: const Icon(Icons.phone_in_talk),
+                      label: const Text(
+                        "Call National EPlus Hotline (1199)",
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
 
-            // Live Location Display Card
+            // 3. Live Location Display Card
             Card(
               elevation: 2,
               child: Padding(
-                padding: const EdgeInsets.all(20.0),
+                padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -180,18 +342,15 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen> {
                         const SizedBox(width: 8),
                         Text(
                           l10n.liveGps,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
-                    const Divider(height: 24),
+                    const Divider(height: 20),
                     if (_loading)
                       const Center(
                         child: Padding(
-                          padding: EdgeInsets.all(16.0),
+                          padding: EdgeInsets.all(12.0),
                           child: CircularProgressIndicator(),
                         ),
                       )
@@ -219,9 +378,9 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen> {
                       Column(
                         children: [
                           _buildCoordRow(l10n.latitude, _currentPosition!.latitude.toString()),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 8),
                           _buildCoordRow(l10n.longitude, _currentPosition!.longitude.toString()),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 8),
                           _buildCoordRow(
                             l10n.accuracy,
                             "±${_currentPosition!.accuracy.toStringAsFixed(1)} meters",
@@ -232,9 +391,9 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
-            // Secondary Location Actions
+            // 4. Secondary Location Actions Row
             Row(
               children: [
                 Expanded(
@@ -242,10 +401,8 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen> {
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.red, width: 1.5),
                       foregroundColor: Colors.red[700],
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                     onPressed: () {
                       if (_currentPosition != null) {
@@ -263,16 +420,14 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2E2E2E),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       elevation: 2,
                     ),
                     onPressed: _sendSms,
@@ -285,9 +440,129 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 24),
+
+            // 5. Searchable Offline Regional Referral Directory
+            const Text(
+              "OFFLINE KRCS REGIONAL REFERRAL DIRECTORY",
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black54, fontSize: 13),
+            ),
+            const Divider(),
+            const SizedBox(height: 8),
+
+            // Directory Search Bar
+            TextField(
+              controller: _searchController,
+              onChanged: _filterDirectory,
+              decoration: InputDecoration(
+                hintText: "Search by Region, Hospital or County...",
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          _filterDirectory('');
+                        },
+                      )
+                    : null,
+                border: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(10)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Search Results Lists
+            if (_filteredOffices.isNotEmpty) ...[
+              const Text(
+                "Red Cross Regional & Field Offices",
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _filteredOffices.length,
+                itemBuilder: (context, idx) {
+                  final office = _filteredOffices[idx];
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      title: Text(office.locationName ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text("Region: ${office.regionName} | County: ${office.countyName}"),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.phone, color: Colors.green),
+                        onPressed: () => _makeCall(office.contactPhone ?? ''),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            if (_filteredHospitals.isNotEmpty) ...[
+              const Text(
+                "Regional Referral Hospitals",
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _filteredHospitals.length,
+                itemBuilder: (context, idx) {
+                  final hosp = _filteredHospitals[idx];
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      title: Text(hosp.hospitalName ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text("${hosp.capabilityTier} | County: ${hosp.countyName}"),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.phone, color: Colors.green),
+                        onPressed: () => _makeCall(hosp.contactPhone ?? ''),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+
+            if (_filteredHospitals.isEmpty && _filteredOffices.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24.0),
+                child: Center(
+                  child: Text(
+                    "No matching helplines found offline.",
+                    style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildMedRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 120,
+          child: Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black54, fontSize: 14),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 14),
+          ),
+        ),
+      ],
     );
   }
 
@@ -303,7 +578,7 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen> {
           value,
           style: const TextStyle(
             fontFamily: 'monospace',
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: FontWeight.bold,
             color: Colors.black87,
           ),

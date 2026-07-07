@@ -45,6 +45,7 @@ class MyApp extends ConsumerWidget {
       supportedLocales: const [
         Locale('en', ''), // English
         Locale('sw', ''), // Swahili (Kiswahili)
+        Locale('so', ''), // Somali
       ],
       
       home: const MainNavigationShell(),
